@@ -1,0 +1,114 @@
+.validator-root {
+    flex-direction: row;
+}
+
+.validator-sidebar {
+    width: 300px;
+    
+    flex-shrink: 0;
+    flex-grow: 0;
+    flex-direction: column;
+    
+    border-width: 1px;
+    background-color: #2b2b2b;
+}
+
+.validator-toolbar-label {
+    unity-font-style: bold;
+    flex-grow: 1;
+}
+
+.validator-list {
+    flex-grow: 1;
+
+    border-color: #333333;
+    border-width: 1px;
+}
+
+.validator-list-item {
+    background-color: #474747;
+    
+    flex-grow: 1;
+    flex-shrink: 1;
+    
+    border-color: #333333;
+    border-width: 1px;
+    
+    padding: 10px 20px;
+}
+
+.unity-list-view__item--selected,
+.unity-collection-view__item--selected {
+    background-color: #3C6B92;
+}
+
+.validator-list-item:hover {
+    background-color: #3a3a3a;
+}
+
+.validator-details-panel {
+    flex-grow: 1;
+    flex-direction: column;
+}
+
+.validator-details-scroll {
+    flex-grow: 1;
+}
+
+.validator-details-container {
+    flex-direction: column;
+    margin: 5px;
+    background-color: #383838;
+}
+
+.validator-detail-row {
+    flex-direction: row;
+    margin: 5px;
+}
+
+.validator-detail-label {
+    min-width: 140px;
+    
+    unity-font-style: bold;
+    font-size: 12px;
+}
+
+.validator-detail-value {
+    flex-grow: 1;
+}
+
+.validator-button-row {
+    flex-direction: row;
+    flex-shrink: 0;
+    flex-grow: 0;
+    
+    margin: 5px;
+}
+
+.validator-button {
+    height: 32px;
+    width: 50%;
+    
+    flex-grow: 1;
+}
+
+.validator-result,
+.validator-runall {
+    padding: 5px;
+    margin: 5px;
+}
+
+.validator-result.result--passed,
+.validator-runall.runall--passed {
+    background-color: #104c0e;
+}
+
+.validator-result.result--failed,
+.validator-runall.runall--failed {
+    background-color: #8a1616;
+}
+
+.validator-result-status,
+.validator-runall-summary {
+    unity-font-style: bold;
+}
