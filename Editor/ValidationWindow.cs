@@ -10,7 +10,7 @@ using UnityEngine.UIElements;
 namespace Fsi.Validation
 {
 	// TODO - UNITY_2019_1_OR_NEWER for package - Kira
-	public sealed class ValidatorWindow : EditorWindow
+	public sealed class ValidationWindow : EditorWindow
 	{
 		[FormerlySerializedAs("styleSheet")]
 		[SerializeField]
@@ -48,7 +48,7 @@ namespace Fsi.Validation
 		[MenuItem("FSI/Validation Window")]
 		public static void ShowWindow()
 		{
-			ValidatorWindow window = GetWindow<ValidatorWindow>("Validation Window");
+			ValidationWindow window = GetWindow<ValidationWindow>("Validation Window");
 			window.minSize = new Vector2(720f, 420f);
 			window.RefreshMethods();
 		}
