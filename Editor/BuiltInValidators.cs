@@ -16,7 +16,17 @@ namespace Fsi.Validation
         [ValidationMethod]
         public static ValidatorResult CheckForUnusedUsings()
         {
-            string[] guids = AssetDatabase.FindAssets("t:Script", new[] { "Assets/Scripts", "Assets/Tests" });
+            List<string> folders = new(){ "Assets/Scripts", "Assets/Tests"};
+            List<string> toSearch = new();
+            foreach (string f in new List<string>(folders))
+            {
+                if (AssetDatabase.AssetPathExists(f))
+                {
+                    toSearch.Add(f);
+                }
+            }
+            
+            string[] guids = AssetDatabase.FindAssets("t:Script", toSearch.ToArray());
             int warnings = 0;
 
             foreach (string guid in guids)
@@ -83,98 +93,95 @@ namespace Fsi.Validation
             }
 
             return warnings == 0
-                ? ValidatorResult.Pass()
-                : ValidatorResult.Fail($"Found {warnings} unused using directive(s). " +
-                                       "This validator uses a conservative identifier scan when Roslyn is unavailable, " +
-                                       "so it may miss some unused usings while avoiding false positives.");
+                       ? ValidatorResult.Pass()
+                       : ValidatorResult.Fail($"Found {warnings} unused using directive(s). " +
+                                              "This validator uses a conservative identifier scan when Roslyn is unavailable, " +
+                                              "so it may miss some unused usings while avoiding false positives.");
         }
 
         private static IReadOnlyList<string> ParseUsingDirectives(string contents)
         {
-            List<string> usings = new List<string>();
+            List<string> usings = new();
             bool inBlockComment = false;
 
-            using (StringReader reader = new StringReader(contents))
+            using StringReader reader = new(contents);
+            while (reader.ReadLine() is { } line)
             {
-                string line;
-                while ((line = reader.ReadLine()) != null)
+                string trimmed = line.Trim();
+
+                if (inBlockComment)
                 {
-                    string trimmed = line.Trim();
-
-                    if (inBlockComment)
-                    {
-                        int endIndex = trimmed.IndexOf("*/", StringComparison.Ordinal);
-                        if (endIndex < 0)
-                        {
-                            continue;
-                        }
-
-                        trimmed = trimmed.Substring(endIndex + 2).Trim();
-                        inBlockComment = false;
-                        if (trimmed.Length == 0)
-                        {
-                            continue;
-                        }
-                    }
-
-                    if (trimmed.StartsWith("/*", StringComparison.Ordinal))
-                    {
-                        int endIndex = trimmed.IndexOf("*/", StringComparison.Ordinal);
-                        if (endIndex < 0)
-                        {
-                            inBlockComment = true;
-                            continue;
-                        }
-
-                        trimmed = trimmed.Substring(endIndex + 2).Trim();
-                        if (trimmed.Length == 0)
-                        {
-                            continue;
-                        }
-                    }
-
-                    if (trimmed.Length == 0 || trimmed.StartsWith("//", StringComparison.Ordinal))
+                    int endIndex = trimmed.IndexOf("*/", StringComparison.Ordinal);
+                    if (endIndex < 0)
                     {
                         continue;
                     }
 
-                    if (trimmed.StartsWith("#", StringComparison.Ordinal))
+                    trimmed = trimmed.Substring(endIndex + 2).Trim();
+                    inBlockComment = false;
+                    if (trimmed.Length == 0)
                     {
                         continue;
                     }
+                }
 
-                    if (!trimmed.StartsWith("using ", StringComparison.Ordinal))
+                if (trimmed.StartsWith("/*", StringComparison.Ordinal))
+                {
+                    int endIndex = trimmed.IndexOf("*/", StringComparison.Ordinal);
+                    if (endIndex < 0)
                     {
-                        break;
-                    }
-
-                    if (trimmed.StartsWith("using static ", StringComparison.Ordinal))
-                    {
+                        inBlockComment = true;
                         continue;
                     }
 
-                    int semicolonIndex = trimmed.IndexOf(';');
-                    if (semicolonIndex < 0)
-                    {
-                        break;
-                    }
-
-                    int equalsIndex = trimmed.IndexOf('=');
-                    if (equalsIndex >= 0 && equalsIndex < semicolonIndex)
+                    trimmed = trimmed.Substring(endIndex + 2).Trim();
+                    if (trimmed.Length == 0)
                     {
                         continue;
                     }
+                }
 
-                    string ns = trimmed.Substring("using ".Length, semicolonIndex - "using ".Length).Trim();
-                    if (ns.StartsWith("global::", StringComparison.Ordinal))
-                    {
-                        ns = ns.Substring("global::".Length);
-                    }
+                if (trimmed.Length == 0 || trimmed.StartsWith("//", StringComparison.Ordinal))
+                {
+                    continue;
+                }
 
-                    if (!string.IsNullOrEmpty(ns))
-                    {
-                        usings.Add(ns);
-                    }
+                if (trimmed.StartsWith("#", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                if (!trimmed.StartsWith("using ", StringComparison.Ordinal))
+                {
+                    break;
+                }
+
+                if (trimmed.StartsWith("using static ", StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                int semicolonIndex = trimmed.IndexOf(';');
+                if (semicolonIndex < 0)
+                {
+                    break;
+                }
+
+                int equalsIndex = trimmed.IndexOf('=');
+                if (equalsIndex >= 0 && equalsIndex < semicolonIndex)
+                {
+                    continue;
+                }
+
+                string ns = trimmed.Substring("using ".Length, semicolonIndex - "using ".Length).Trim();
+                if (ns.StartsWith("global::", StringComparison.Ordinal))
+                {
+                    ns = ns.Substring("global::".Length);
+                }
+
+                if (!string.IsNullOrEmpty(ns))
+                {
+                    usings.Add(ns);
                 }
             }
 
@@ -183,7 +190,7 @@ namespace Fsi.Validation
 
         private static HashSet<string> ExtractIdentifiers(string contents)
         {
-            HashSet<string> identifiers = new HashSet<string>(StringComparer.Ordinal);
+            HashSet<string> identifiers = new(StringComparer.Ordinal);
             int length = contents.Length;
             bool inLineComment = false;
             bool inBlockComment = false;
@@ -219,15 +226,14 @@ namespace Fsi.Validation
 
                 if (inString)
                 {
-                    if (c == '\\')
+                    switch (c)
                     {
-                        i++;
-                        continue;
-                    }
-
-                    if (c == '"')
-                    {
-                        inString = false;
+                        case '\\':
+                            i++;
+                            continue;
+                        case '"':
+                            inString = false;
+                            break;
                     }
 
                     continue;
@@ -235,15 +241,14 @@ namespace Fsi.Validation
 
                 if (inVerbatimString)
                 {
-                    if (c == '"' && next == '"')
+                    switch (c)
                     {
-                        i++;
-                        continue;
-                    }
-
-                    if (c == '"')
-                    {
-                        inVerbatimString = false;
+                        case '"' when next == '"':
+                            i++;
+                            continue;
+                        case '"':
+                            inVerbatimString = false;
+                            break;
                     }
 
                     continue;
@@ -251,65 +256,52 @@ namespace Fsi.Validation
 
                 if (inChar)
                 {
-                    if (c == '\\')
+                    switch (c)
                     {
+                        case '\\':
+                            i++;
+                            continue;
+                        case '\'':
+                            inChar = false;
+                            break;
+                    }
+
+                    continue;
+                }
+
+                switch (c)
+                {
+                    case '/' when next == '/':
+                        inLineComment = true;
                         i++;
                         continue;
-                    }
-
-                    if (c == '\'')
-                    {
-                        inChar = false;
-                    }
-
-                    continue;
-                }
-
-                if (c == '/' && next == '/')
-                {
-                    inLineComment = true;
-                    i++;
-                    continue;
-                }
-
-                if (c == '/' && next == '*')
-                {
-                    inBlockComment = true;
-                    i++;
-                    continue;
-                }
-
-                if (c == '@' && next == '"')
-                {
-                    inVerbatimString = true;
-                    i++;
-                    continue;
-                }
-
-                if (c == '"')
-                {
-                    inString = true;
-                    continue;
-                }
-
-                if (c == '\'')
-                {
-                    inChar = true;
-                    continue;
-                }
-
-                if (c == '@' && (char.IsLetter(next) || next == '_'))
-                {
-                    int start = i + 1;
-                    i = start;
-                    while (i < length && (char.IsLetterOrDigit(contents[i]) || contents[i] == '_'))
-                    {
+                    case '/' when next == '*':
+                        inBlockComment = true;
                         i++;
-                    }
+                        continue;
+                    case '@' when next == '"':
+                        inVerbatimString = true;
+                        i++;
+                        continue;
+                    case '"':
+                        inString = true;
+                        continue;
+                    case '\'':
+                        inChar = true;
+                        continue;
+                    case '@' when (char.IsLetter(next) || next == '_'):
+                    {
+                        int start = i + 1;
+                        i = start;
+                        while (i < length && (char.IsLetterOrDigit(contents[i]) || contents[i] == '_'))
+                        {
+                            i++;
+                        }
 
-                    identifiers.Add(contents.Substring(start, i - start));
-                    i--;
-                    continue;
+                        identifiers.Add(contents.Substring(start, i - start));
+                        i--;
+                        continue;
+                    }
                 }
 
                 if (char.IsLetter(c) || c == '_')
@@ -401,12 +393,9 @@ namespace Fsi.Validation
         private static string GetAttributeShortName(string typeName)
         {
             const string suffix = "Attribute";
-            if (typeName.EndsWith(suffix, StringComparison.Ordinal))
-            {
-                return typeName.Substring(0, typeName.Length - suffix.Length);
-            }
-
-            return null;
+            return typeName.EndsWith(suffix, StringComparison.Ordinal) 
+                       ? typeName.Substring(0, typeName.Length - suffix.Length) 
+                       : null;
         }
 
         private static bool IsExtensionContainer(Type type)
@@ -416,16 +405,17 @@ namespace Fsi.Validation
                 return false;
             }
 
-            return type.GetMethods(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)
-                .Any(method => method.IsDefined(typeof(ExtensionAttribute), false));
+            return type.GetMethods(BindingFlags.Static 
+                                   | BindingFlags.Public 
+                                   | BindingFlags.NonPublic)
+                       .Any(method => method.IsDefined(typeof(ExtensionAttribute), false));
         }
 
         private readonly struct TypeIndex
         {
-            public TypeIndex(
-                Dictionary<string, HashSet<string>> namespaceTypes,
-                Dictionary<string, HashSet<string>> attributeShortNames,
-                HashSet<string> extensionNamespaces)
+            public TypeIndex(Dictionary<string, HashSet<string>> namespaceTypes,
+                             Dictionary<string, HashSet<string>> attributeShortNames,
+                             HashSet<string> extensionNamespaces)
             {
                 NamespaceTypes = namespaceTypes;
                 AttributeShortNames = attributeShortNames;
