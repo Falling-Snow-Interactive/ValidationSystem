@@ -16,7 +16,7 @@ namespace Fsi.Validation
         [ValidationMethod]
         public static ValidatorResult CheckForUnusedUsings()
         {
-            List<string> folders = new(){ "Assets/Scripts", "Assets/Tests"};
+            List<string> folders = new(){ "Assets/Scripts", "Assets/Tests, Assets/Editor"};
             List<string> toSearch = new();
             foreach (string f in new List<string>(folders))
             {
