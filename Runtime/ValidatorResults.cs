@@ -2,12 +2,12 @@ using UnityEngine;
 
 namespace Fsi.Validation
 {
-    public readonly struct ValidatorResult
+    public struct ValidatorResult
     {
-        public bool Passed { get; }
-        public string Message { get; }
+        public bool Passed { get; set; }
+        public string Message { get; set; }
 
-        private ValidatorResult(bool passed, string message = null)
+        public ValidatorResult(bool passed, string message = null)
         {
             Passed = passed;
             Message = message;
